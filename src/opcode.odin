@@ -1,12 +1,12 @@
-package chip8
+package emulator 
 
 import "core:fmt"
 
-opcode_from_buffer_location :: proc (buffer: []u8, i: int) -> Opcode {
+opcode_from_buffer_location :: proc (buffer: []u8, i: u16) -> Opcode {
 	hex := (cast(u16)buffer[i] << 8) | (cast(u16)buffer[i + 1])
 
 	nnn := hex & 0xFFF
-	nn := hex & 0xFF
+	nn := cast(u8)(hex & 0xFF)
 	n := cast(u8)(hex & 0xF)
 	x := cast(u8)((hex >> 8) & 0xF)
 	y := cast(u8)((hex >> 4) & 0xF)
@@ -110,7 +110,7 @@ opcode_from_buffer_location :: proc (buffer: []u8, i: int) -> Opcode {
 Opcode :: struct {
 	kind: InstructionKind,
 	nnn: u16,
-	nn: u16,
+	nn: u8,
 	n: u8,
 	x: u8,
 	y: u8,

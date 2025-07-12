@@ -1,4 +1,4 @@
-package chip8
+package emulator 
 
 import "core:fmt"
 import "core:os"
@@ -6,10 +6,6 @@ import "core:os"
 MAX_READ :: 2048
 MEMORY_SIZE :: 4096
 REGISTER_COUNT :: 16
-
-DISPLAY_WIDTH :: 64
-DISPLAY_HEIGHT :: 32
-
 KEY_RANGE :: 16
 
 Emulator :: struct {
@@ -18,25 +14,35 @@ Emulator :: struct {
 	stack: [dynamic]u8,
 	pc: u16,
 	index_register: u16,
-	display: [DISPLAY_HEIGHT][DISPLAY_WIDTH]u8,
+	delay_timer: u8,
+	sound_timer: u8,
+	display: [DISPLAY_HEIGHT][DISPLAY_WIDTH]bool,
 	keys: [KEY_RANGE]bool,
 }
 
 emulator_from_buffer :: proc (buffer: []u8) -> Emulator {
-	for i := 0; i < len(buffer); i += 2 {
-		opcode := opcode_from_buffer_location(buffer, i)
-		fmt.printf("Opcode: kind = %s, nnn = %x, nn = %x, n = %x, x = %x, y = %x\n", opcode.kind, opcode.nnn, opcode.nn, opcode.n, opcode.x, opcode.y)
-	}	
+	memory: [MEMORY_SIZE]u8
+	game_offset := 512
+
+	for i in 0..<len(buffer) {
+		memory[game_offset + i] = buffer[i]	
+	}
 
 	return Emulator {
-		[MEMORY_SIZE]u8{},
+		memory,
 		[REGISTER_COUNT]u8{},
 		make([dynamic]u8),
+		500,
 		0,
 		0,
-		[DISPLAY_HEIGHT][DISPLAY_WIDTH]u8{},
+		0,
+		[DISPLAY_HEIGHT][DISPLAY_WIDTH]bool{},
 		[KEY_RANGE]bool{},
 	}
+}
+
+emulator_destroy :: proc (emulator: ^Emulator) {
+	delete(emulator.stack)
 }
 
 main :: proc () {
@@ -52,10 +58,10 @@ main :: proc () {
 		return
 	}
 
-	defer os.close(handle)
 	
 	buffer: [MAX_READ]u8
 	total_read, read_err := os.read(handle, buffer[:])
+	os.close(handle)
 
 	if read_err != nil {
 		fmt.println("Error while reading from ROM.")
@@ -68,5 +74,9 @@ main :: proc () {
 	}
 
 	data := buffer[:total_read]
+
 	emulator := emulator_from_buffer(data)
+	defer emulator_destroy(&emulator)
+
+	process_instructions(&emulator)
 }
