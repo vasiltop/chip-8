@@ -11,7 +11,7 @@ KEY_RANGE :: 16
 Emulator :: struct {
 	memory: [MEMORY_SIZE]u8,
 	registers: [REGISTER_COUNT]u8,
-	stack: [dynamic]u8,
+	stack: [dynamic]u16,
 	pc: u16,
 	index_register: u16,
 	delay_timer: u8,
@@ -31,7 +31,7 @@ emulator_from_buffer :: proc (buffer: []u8) -> Emulator {
 	return Emulator {
 		memory,
 		[REGISTER_COUNT]u8{},
-		make([dynamic]u8),
+		make([dynamic]u16),
 		500,
 		0,
 		0,
