@@ -1,6 +1,7 @@
 package emulator 
 
 import "core:fmt"
+import "core:math/rand"
 import rl "vendor:raylib"
 import "core:time"
 
@@ -32,14 +33,27 @@ process_instructions :: proc (em: ^Emulator) {
 			last_timer_tick = now
 		}
 
+		process_keys(em)
 		opcode := opcode_from_buffer_location(em.memory[:], em.pc)
 		process_instruction(&opcode, em)
 		process_display(em)
 	}
 }
 
+process_keys :: proc (em: ^Emulator) {
+	for i in 0..<len(em.keys) {
+		em.keys[i] = false
+	}
+
+	for key, &value in key_to_value {
+		if rl.IsKeyDown(key) {
+			em.keys[value] = true
+		}
+	}	
+}
+
 process_instruction :: proc (op: ^Opcode, em: ^Emulator) {	
-	#partial switch op.kind {
+	switch op.kind {
 	case .CLS:
 		clear(em)
 	case .JMP:
@@ -86,13 +100,98 @@ process_instruction :: proc (op: ^Opcode, em: ^Emulator) {
 		load_registers(em, op.x)
 	case .SET_BCD:
 		store_bcd(em, op.x)
+	case .SET_I_SPR:
+		set_i_to_char_sprite(em, op.x)
+	case .SET_DLY:
+		set_delay(em, op.x)
+	case .SET_VX_DLY:
+		set_register_to_delay(em, op.x)
+	case .SET_VX_RAND:
+		set_register_to_rand(em, op.x, op.nn)
+	case .SKIP_NPRS:
+		skip_if_key_npressed(em, op.x)
+	case .SKIP_PRS:
+		skip_if_key_pressed(em, op.x)
+	case .SET_SND:
+		set_sound(em, op.x)
+	case .HLT_PRESS:
+		wait_for_keypress(em, op.x)
+	case .SUB_VX_VY:
+		set_vx_vy_minus_vx(em, op.x, op.y)
+	case .JMP_NNN_PL_V0:
+		jump(em, op.nnn + cast(u16)em.registers[0])
+	case .ADD_VX_I:
+		em.index_register += cast(u16)em.registers[op.x]
+		advance(em)
 	case:
 		fmt.println("ERROR: ")
 		fmt.println(op)
 		panic("Unimplemented Instruction")
 	}
 
-	fmt.println(op)
+	if op.kind != .JMP {
+		//fmt.println(op)
+	}
+}
+
+set_vx_vy_minus_vx :: proc (em: ^Emulator, register1: u8, register2: u8) {
+	value1 := em.registers[register1]
+	value2 := em.registers[register2]
+
+	em.registers[register1] = value2 - value1
+	advance(em)
+}
+
+wait_for_keypress :: proc (em: ^Emulator, register: u8) {
+	for key in em.keys {
+		if key {
+			advance(em)
+		}
+	}
+}
+
+skip_if_key_npressed :: proc (em: ^Emulator, register: u8) {
+	if !em.keys[em.registers[register]] {
+		advance(em)
+	}	
+
+	advance(em)
+}
+
+skip_if_key_pressed :: proc (em: ^Emulator, register: u8) {
+	if em.keys[em.registers[register]] {
+		advance(em)
+	}	
+
+	advance(em)
+}
+
+set_register_to_rand:: proc (em: ^Emulator, register: u8, value: u8) {
+	rand := cast(u8)(rand.uint32())
+
+	em.registers[register] = rand & value
+	advance(em)
+}
+
+set_register_to_delay :: proc (em: ^Emulator, register: u8) {
+	em.registers[register] = em.delay_timer
+	advance(em)
+}
+
+set_delay :: proc (em: ^Emulator, register: u8) {
+	em.delay_timer = em.registers[register]
+	advance(em)
+}
+
+set_sound :: proc (em: ^Emulator, register: u8) {
+	em.sound_timer = em.registers[register]
+	advance(em)
+}
+
+set_i_to_char_sprite :: proc (em: ^Emulator, register: u8) {
+	value := em.registers[register]
+	em.index_register = cast(u16) (FONT_OFFSET + (value * 5))
+	advance(em)
 }
 
 store_bcd :: proc (em: ^Emulator, register: u8) {
@@ -284,9 +383,9 @@ process_display :: proc (em: ^Emulator) {
 			color := rl.BLACK
 			if em.display[y][x] == true {
 				color = rl.WHITE
+				rl.DrawRectangle(cast(i32)(x * CELL_SIZE), cast(i32)(y * CELL_SIZE), CELL_SIZE, CELL_SIZE, color)
 			}
 
-			rl.DrawRectangle(cast(i32)(x * CELL_SIZE), cast(i32)(y * CELL_SIZE), CELL_SIZE, CELL_SIZE, color)
 		}
 	}
 	rl.EndDrawing()
