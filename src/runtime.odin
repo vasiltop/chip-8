@@ -377,16 +377,14 @@ advance :: proc (em: ^Emulator) {
 
 process_display :: proc (em: ^Emulator) {
 	rl.BeginDrawing()
+	defer rl.EndDrawing()
+
 	rl.ClearBackground(rl.BLACK)
 	for x in 0..<DISPLAY_WIDTH {
 		for y in 0..<DISPLAY_HEIGHT {
-			color := rl.BLACK
 			if em.display[y][x] == true {
-				color = rl.WHITE
-				rl.DrawRectangle(cast(i32)(x * CELL_SIZE), cast(i32)(y * CELL_SIZE), CELL_SIZE, CELL_SIZE, color)
+				rl.DrawRectangle(cast(i32)(x * CELL_SIZE), cast(i32)(y * CELL_SIZE), CELL_SIZE, CELL_SIZE, rl.WHITE)
 			}
-
 		}
 	}
-	rl.EndDrawing()
 }

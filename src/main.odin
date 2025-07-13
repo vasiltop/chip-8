@@ -10,6 +10,8 @@ MAX_READ :: 2048
 MEMORY_SIZE :: 4096
 REGISTER_COUNT :: 16
 KEY_RANGE :: 16
+FONT_OFFSET :: 50
+GAME_OFFSET :: 512
 
 font_data := [80]u8 {
 	0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
@@ -61,9 +63,6 @@ Emulator :: struct {
 	keys: [KEY_RANGE]bool,
 }
 
-FONT_OFFSET :: 50
-GAME_OFFSET :: 512
-
 emulator_from_buffer :: proc (buffer: []u8) -> Emulator {
 	memory: [MEMORY_SIZE]u8
 
@@ -90,6 +89,7 @@ emulator_from_buffer :: proc (buffer: []u8) -> Emulator {
 
 emulator_destroy :: proc (emulator: ^Emulator) {
 	delete(emulator.stack)
+	delete(key_to_value)
 }
 
 main :: proc () {
