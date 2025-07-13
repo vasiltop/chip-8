@@ -8,6 +8,7 @@ import "core:time"
 CELL_SIZE :: 16
 DISPLAY_WIDTH :: 64
 DISPLAY_HEIGHT :: 32
+INFO_LOG :: #config(info_log, false)
 
 process_instructions :: proc (em: ^Emulator) {
 	rl.SetTraceLogLevel(rl.TraceLogLevel.NONE)
@@ -129,8 +130,8 @@ process_instruction :: proc (op: ^Opcode, em: ^Emulator) {
 		panic("Unimplemented Instruction")
 	}
 
-	if op.kind != .JMP {
-		//fmt.println(op)
+	if INFO_LOG && op.kind != .JMP {
+		fmt.println(op)
 	}
 }
 
