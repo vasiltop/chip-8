@@ -18,9 +18,9 @@ odin run src -out:bin/chip8 -define:info_log=true -- roms/ibm.ch8
 ## Controls
 The CHIP-8 keypad is represented by the following keys:
 
-1 	2 	3 	C<br>
-4 	5 	6 	D<br>
-7 	8 	9 	E<br>
-A 	0 	B 	F<br>
+1 	2 	3 	4<br>
+Q 	W 	E 	R<br>
+A 	S 	D 	F<br>
+Z 	X 	C 	V<br>
 
 ![Pong](./images/pong.png)
