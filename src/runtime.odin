@@ -4,6 +4,7 @@ import "core:fmt"
 import "core:math/rand"
 import rl "vendor:raylib"
 import "core:time"
+import "base:intrinsics"
 
 CELL_SIZE :: 16
 DISPLAY_WIDTH :: 64
@@ -130,8 +131,10 @@ process_instruction :: proc (op: ^Opcode, em: ^Emulator) {
 		panic("Unimplemented Instruction")
 	}
 
-	if INFO_LOG && op.kind != .JMP {
-		fmt.println(op)
+	when INFO_LOG {
+		if op.kind != .JMP {
+			fmt.println(op)
+		}
 	}
 }
 
@@ -139,7 +142,9 @@ set_vx_vy_minus_vx :: proc (em: ^Emulator, register1: u8, register2: u8) {
 	value1 := em.registers[register1]
 	value2 := em.registers[register2]
 
-	em.registers[register1] = value2 - value1
+	res, overflow := intrinsics.overflow_sub(value2, value1)
+	em.registers[register1] = res
+	em.registers[0xF] = cast(u8)!overflow
 	advance(em)
 }
 
@@ -223,22 +228,32 @@ load_registers :: proc (em: ^Emulator, limit: u8) {
 }
 
 shift_register_l :: proc (em: ^Emulator, register: u8) {
+	msb := (em.registers[register] >> 7) & 0x1
 	em.registers[register] <<= 1
+	em.registers[0xF] = msb
 	advance(em)
 }
 
 shift_register_r :: proc (em: ^Emulator, register: u8) {
+	lsb := em.registers[register] & 0x1
 	em.registers[register] >>= 1
+	em.registers[0xF] = lsb
 	advance(em)
 }
 
 sub_registers :: proc (em: ^Emulator, to: u8, from: u8) {
-	em.registers[to] -= em.registers[from]
+	res, overflow := intrinsics.overflow_sub(em.registers[to], em.registers[from])
+	em.registers[to] = res
+	em.registers[0xF] = cast(u8)!overflow
+
 	advance(em)
 }
 
 add_registers :: proc (em: ^Emulator, to: u8, from: u8) {
-	em.registers[to] += em.registers[from]
+	res, overflow := intrinsics.overflow_add(em.registers[to], em.registers[from])	
+	em.registers[to] = res 
+	em.registers[0xF] = cast(u8)overflow
+
 	advance(em)
 }
 
